@@ -24,8 +24,12 @@ codes, names) that dense embeddings smear, or synonyms the keyword
 index misses. Each covers the other's blind spot.
 **Hurts when:** the corpus is tiny or jargon-free — then it's pure
 latency overhead for no gain.
-**Measured here:** hybrid beats the dense baseline by +0.300 recall@5
-on the gold set (0.567 → 0.867).
+**Measured here:** hybrid (RRF) lifts recall@5 from 0.633 to 0.867 over
+the dense baseline, but BM25 alone reaches 1.000 on this corpus, because the
+offline "dense" embedding is a hashed bag of words and the gold questions
+share exact terms with their documents. With real embeddings the ranking of
+these variants may change. Full per-technique table, with paired bootstrap
+intervals: `python -m ragopt.ablation` (also in the README).
 
 ## 3. Two-stage reranking
 

@@ -3,11 +3,26 @@
 import pytest
 
 from ragopt import (
-    ABTest, BM25Retriever, CachedEmbeddings, ContextCompressor, DenseRetriever,
-    FakeEmbeddings, FixedChunker, HyDE, HybridRetriever, ParagraphChunker,
-    QueryRewriter, RAGPipeline, Reranker, SlidingWindowChunker,
-    build_corpus, build_gold_questions, estimate_tokens,
-    keyword_hit_rate, precision_at_k, recall_at_k,
+    ABTest,
+    BM25Retriever,
+    CachedEmbeddings,
+    ContextCompressor,
+    DenseRetriever,
+    FakeEmbeddings,
+    FixedChunker,
+    HybridRetriever,
+    HyDE,
+    ParagraphChunker,
+    QueryRewriter,
+    RAGPipeline,
+    Reranker,
+    SlidingWindowChunker,
+    build_corpus,
+    build_gold_questions,
+    estimate_tokens,
+    keyword_hit_rate,
+    precision_at_k,
+    recall_at_k,
 )
 from ragopt.compress import estimate_tokens as est2
 
@@ -300,3 +315,33 @@ def test_hybrid_rerank_ge_baseline_recall(gold, dense, hybrid):
                        reranker=Reranker(hybrid, top_n=20, top_k=5))
     res = ab.run(base, full)
     assert res.metrics["recall@5"]["b"] >= res.metrics["recall@5"]["a"]
+
+
+# --- ablation (added after review: one change at a time, with CIs) ---
+def test_ablation_baseline_has_zero_delta_and_ten_variants():
+    from ragopt.ablation import run_ablation
+    rows = run_ablation()
+    assert len(rows) == 10
+    assert rows[0].delta == 0 and rows[0].ci == (0.0, 0.0)
+
+
+def test_ablation_is_deterministic():
+    from ragopt.ablation import run_ablation
+    assert run_ablation() == run_ablation()
+
+
+def test_bootstrap_ci_brackets_the_mean():
+    from ragopt.ablation import bootstrap_ci
+    deltas = [0.0, 0.5, 1.0, 0.0, 0.5, 1.0, 0.0, 0.5]
+    lo, hi = bootstrap_ci(deltas)
+    assert lo <= sum(deltas) / len(deltas) <= hi
+    assert bootstrap_ci([0.2] * 10) == (0.2, 0.2) or abs(bootstrap_ci([0.2] * 10)[0] - 0.2) < 1e-9
+
+
+def test_ab_test_measures_the_reranker():
+    """Before the fix, recall ignored the reranker, so dense vs dense+rerank tied."""
+    from ragopt.ablation import build_variants
+    docs, gold = build_corpus(), build_gold_questions()
+    variants = {p.name: p for p in build_variants(docs)}
+    res = ABTest(gold, k=5).run(variants["baseline (fixed 200/50 + dense)"], variants["rerank on dense"])
+    assert res.metrics["recall@5"]["delta"] > 0

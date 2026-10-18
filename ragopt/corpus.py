@@ -4,7 +4,7 @@ All documents are fictional and generated deterministically from a fixed seed.
 In production, replace with your own document collection.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # Deterministic vocabulary blocks — each doc is assembled from these so that
 # the corpus is fully reproducible without any RNG at import time.

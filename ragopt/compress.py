@@ -5,7 +5,6 @@ the highest-scoring chunks that fit the budget and prunes marginal ones,
 reporting exactly how many tokens were saved.
 """
 
-import re
 
 
 def estimate_tokens(text: str) -> int:

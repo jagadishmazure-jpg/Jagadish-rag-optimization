@@ -59,7 +59,9 @@ class ABTest:
     def _score(self, pipeline) -> dict:
         recalls, precisions, hits, tokens = [], [], [], []
         for g in self.gold:
-            ranked = pipeline.retriever.retrieve(g.question, top_k=self.k)
+            # Score the pipeline's final ranking (after rerank), not just the
+            # first-stage retriever; otherwise a reranker is never measured.
+            ranked = pipeline.ranked(g.question, top_k=self.k)
             ids = [s.doc_id for s in ranked]
             relevant = set(g.relevant_doc_ids)
             recalls.append(recall_at_k(relevant, ids, self.k))

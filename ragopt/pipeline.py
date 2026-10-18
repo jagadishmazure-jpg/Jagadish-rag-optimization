@@ -1,8 +1,8 @@
 """Composable RAG pipeline: chunker -> retriever -> [rerank] -> [compress] -> answer."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from .compress import ContextCompressor, estimate_tokens
+from .compress import ContextCompressor
 
 
 @dataclass
@@ -31,10 +31,15 @@ class RAGPipeline:
         self.compressor = compressor or ContextCompressor(token_budget=10 ** 9)
         self.top_k = top_k
 
-    def run(self, question: str) -> Answer:
-        ranked = self.retriever.retrieve(question, top_k=self.top_k)
+    def ranked(self, question: str, top_k: int = None) -> list:
+        """Final ranking the pipeline uses: the reranker's if there is one."""
+        k = top_k or self.top_k
         if self.reranker is not None:
-            ranked = self.reranker.retrieve(question, top_k=self.top_k)
+            return self.reranker.retrieve(question, top_k=k)
+        return self.retriever.retrieve(question, top_k=k)
+
+    def run(self, question: str) -> Answer:
+        ranked = self.ranked(question)
         packed = self.compressor.compress(ranked)
         kept = packed["chunks"]
         if kept:
